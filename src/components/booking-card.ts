@@ -62,16 +62,26 @@ export class BookingCard extends HTMLElement {
 
   private onAction = () => {
     if (!this.current) return
-    // А3: запросите следующий статус публичным событием.
-    // Подтверждённая заявка тоже интерактивна: здесь нет запрета confirmed.
-  }
+    const nextStatus = this.current.status === 'new' ? 'confirmed' : 'new'
+    
+    const event = new CustomEvent('booking-status-request', {
+      detail: { 
+        id: this.current.id, 
+        nextStatus 
+      },
+      bubbles: true, 
+      composed: true 
+    })
+    
+    this.dispatchEvent(event)
+   }
 
   connectedCallback() {
-    // А4: подключите обработчик внутренней кнопки.
+    this.button.addEventListener('click', this.onAction)
   }
 
   disconnectedCallback() {
-    // А4: снимите этот же обработчик.
+    this.button.removeEventListener('click', this.onAction)
   }
 }
 
