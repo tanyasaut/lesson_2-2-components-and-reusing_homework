@@ -3,7 +3,8 @@ import type { Booking, BookingStatus } from './models/booking'
 import { initialBookings } from './models/booking'
 import { legacyCard, updateLegacy } from './legacy-card'
 import { mountLab } from './lab'
-// А1: импортируйте модуль регистрации. А5: импортируйте тип BookingCard.
+import './components/booking-card'
+import type { BookingCard } from './components/booking-card'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `
