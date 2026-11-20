@@ -9,6 +9,10 @@ export class BookingCard extends HTMLElement {
   private statusText = document.createElement('p')
   private button = document.createElement('button')
 
+  static get observedAttributes() {
+    return ['compact']
+  }
+
   constructor() {
     super()
     const style = document.createElement('style')
@@ -36,6 +40,7 @@ export class BookingCard extends HTMLElement {
 
   private render() {
     const booking = this.current
+    const isCompact = this.hasAttribute('compact')
     if (!booking) {
       this.nameText.textContent = 'Ожидаю данные'
       this.seatsText.textContent = ''
@@ -46,8 +51,14 @@ export class BookingCard extends HTMLElement {
       return
     }
     this.nameText.textContent = booking.name 
-    this.seatsText.textContent = `Участников: ${booking.seats}`
-    this.sourceText.textContent = `Источник: ${booking.source}`
+    
+    if (isCompact) {
+      this.seatsText.textContent = `${booking.seats} чел.`
+      this.sourceText.textContent = ''
+    } else {
+      this.seatsText.textContent = `Участников: ${booking.seats}`
+      this.sourceText.textContent = `Источник: ${booking.source}`
+    }
     
     if (booking.status === 'new') {
       this.statusText.textContent = 'Новая заявка'
@@ -82,6 +93,12 @@ export class BookingCard extends HTMLElement {
 
   disconnectedCallback() {
     this.button.removeEventListener('click', this.onAction)
+  }
+
+    attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+    if (name === 'compact' && oldValue !== newValue) {
+      this.render()
+    }
   }
 }
 
