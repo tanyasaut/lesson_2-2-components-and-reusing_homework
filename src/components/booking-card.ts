@@ -9,6 +9,10 @@ export class BookingCard extends HTMLElement {
   private statusText = document.createElement('p')
   private button = document.createElement('button')
 
+  static get observedAttributes() {
+    return ['compact']
+  }
+
   constructor() {
     super()
     const style = document.createElement('style')
@@ -17,24 +21,34 @@ export class BookingCard extends HTMLElement {
       article { border: 1px solid #c5d7d0; border-radius: 12px; padding: 16px; background: white; color: #203a34; }
       h3 { margin: 0 0 8px; overflow-wrap: anywhere; }
       p { margin: 6px 0; }
-      button { background: #355bd4; color: white; border: 0; border-radius: 6px; padding: 9px 14px; font: inherit; cursor: pointer; }
+      p:empty { display: none; }
+      slot[name="note"] { display: block; font-size: 0.875rem; color: #666; margin-top: 8px; }
+      button { background: var(--booking-accent, #355bd4); color: white; border: 0; border-radius: 6px; padding: 9px 14px; font: inherit; cursor: pointer; display: block; margin-bottom: 8px; }
+
       button:disabled { background: #dfe6e3; color: #52665e; cursor: default; }
       button:focus-visible { outline: 3px solid #a15c00; outline-offset: 3px; }
     `
     const article = document.createElement('article')
     this.button.type = 'button'
-    article.append(this.nameText, this.seatsText, this.sourceText, this.statusText, this.button)
-    // А1: создайте открытый shadow root, поместите в него style и article.
-    // А2: отобразите начальное состояние без данных.
+
+    const slotContainer = document.createElement('div')
+    slotContainer.innerHTML = '<slot name="note">Комментарий не задан</slot>'
+    
+    article.append(this.nameText, this.seatsText, this.sourceText, this.statusText, this.button, slotContainer) 
+    const shadow = this.attachShadow({ mode: 'open' })
+    
+    shadow.append(style, article)   
+    this.render()
   }
 
-  set booking(value: Booking) {
-    // А2: примите данные и обновите отображение.
-    void value
+  set booking(value: Booking | null) {
+    this.current = value
+    this.render()
   }
 
   private render() {
     const booking = this.current
+    const isCompact = this.hasAttribute('compact')
     if (!booking) {
       this.nameText.textContent = 'Ожидаю данные'
       this.seatsText.textContent = ''
@@ -44,23 +58,58 @@ export class BookingCard extends HTMLElement {
       this.button.disabled = true
       return
     }
-    // А2: имя, участники, источник, статус и кнопка для обоих состояний.
+    this.nameText.textContent = booking.name 
+
+    if (isCompact) {
+      this.seatsText.textContent = `${booking.seats} чел.`
+      this.sourceText.textContent = ''
+    } else {
+      this.seatsText.textContent = `Участников: ${booking.seats}`
+      this.sourceText.textContent = `Источник: ${booking.source}`
+    }
+    
+    if (booking.status === 'new') {
+      this.statusText.textContent = 'Новая заявка'
+      this.button.textContent = 'Подтвердить'
+      this.button.disabled = false
+    } else {
+      this.statusText.textContent = 'Подтверждена'
+      this.button.textContent = 'Вернуть в очередь'
+      this.button.disabled = false
+    }
   }
 
   private onAction = () => {
     if (!this.current) return
-    // А3: запросите следующий статус публичным событием.
-    // Подтверждённая заявка тоже интерактивна: здесь нет запрета confirmed.
-  }
+    const nextStatus = this.current.status === 'new' ? 'confirmed' : 'new'
+    
+    const event = new CustomEvent('booking-status-request', {
+      detail: { 
+        id: this.current.id, 
+        nextStatus 
+      },
+      bubbles: true, 
+      composed: true 
+    })
+    
+    this.dispatchEvent(event)
+   }
 
   connectedCallback() {
-    // А4: подключите обработчик внутренней кнопки.
+    this.button.addEventListener('click', this.onAction)
+    this.render()
   }
 
   disconnectedCallback() {
-    // А4: снимите этот же обработчик.
+    this.button.removeEventListener('click', this.onAction)
+  }
+
+    attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+    if (name === 'compact' && oldValue !== newValue) {
+      this.render()
+    }
   }
 }
 
-// А1: зарегистрируйте booking-card.
+customElements.define('booking-card', BookingCard)
 // Д1: реакция на compact. Д2: слот note. Д3: сохранение узлов и тема.
